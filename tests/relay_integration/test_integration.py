@@ -212,3 +212,14 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"value": pytest.approx(1050)},
                 }
             }
+
+    def test_project_abuse_quotas(self):
+        # The smallest limit we can do is 1, as 0 disables the quota.
+        # The default window of 10s might be flaky, so we make it larger
+        # and artificially set the counter (TODO).
+        self.organization.update_option("project-abuse-quota.window", 600)
+        self.organization.update_option("project-abuse-quota.error-limit", 1)
+        # explicit event type?
+        # event_data = {"message": "hi", "timestamp": iso_format(before_now(seconds=1))}
+        # event = self.post_and_retrieve_event(event_data)
+        # assert event.message == "hi"
