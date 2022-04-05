@@ -372,24 +372,39 @@ class Quota(Service):
                 (DataCategory.SESSION,),
             ),
         ):
-            limit = org.get_option(option)
+            # If the compat options are set, use them.
+            for o in compat_options:
+                limit = org.get_option(o)
+                if limit:
+                    break
+
+            # If it isn't set or is 0, we're unlimited,
+            # so don't yield a QuotaConfig.
             if not limit:
-                for o in compat_options:
-                    limit = org.get_option(o)
-                    if limit:
-                        break
-            if limit:
-                yield QuotaConfig(
-                    id=id,
-                    limit=limit * abuse_window,
-                    scope=QuotaScope.PROJECT,
-                    categories=categories,
-                    window=abuse_window,
-                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                    #      from getsentry. Don't change it here.
-                    #      If it's changed in getsentry, it needs to be synced here.
-                    reason_code="project_abuse_limit",
-                )
+                continue
+
+            # hmm
+
+            limit = org.get_option(option)
+            if limit < 0:
+                # Unlimited.
+                continue
+
+            if limit > 0:
+
+
+
+            yield QuotaConfig(
+                id=id,
+                limit=limit * abuse_window,
+                scope=QuotaScope.PROJECT,
+                categories=categories,
+                window=abuse_window,
+                # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                #      from getsentry. Don't change it here.
+                #      If it's changed in getsentry, it needs to be synced here.
+                reason_code="project_abuse_limit",
+            )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption

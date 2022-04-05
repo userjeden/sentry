@@ -392,9 +392,10 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
 # Abuse quotas.
-# Don't limit by default, base values and organization overrides are configured
+# Don't limit by default (-1), base values and organization overrides are configured
 # in prod. The limits are per second, applied across a window. The actual quota
 # is then `window * limit`.
+# Unlike the deprecated options, 0 value means 0.
 register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
 register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
@@ -402,10 +403,13 @@ register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG
 register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # DEPRECATED. Use "project-abuse-quota.window" instead.
+# A value of 0 means unlimited.
 register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
 # DEPRECATED. Use "project-abuse-quota.error-limit" instead.
+# A value of 0 means unlimited.
 register("getsentry.rate-limit.project-errors", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 # DEPRECATED. Use "project-abuse-quota.transaction-limit" instead.
+# A value of 0 means unlimited.
 register(
     "getsentry.rate-limit.project-transactions",
     type=Int,
