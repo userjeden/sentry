@@ -11,11 +11,11 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
-import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
 export class Request {
@@ -592,21 +592,12 @@ function generateOrganizationBaseUrl(organizationUrl: string) {
 
 type APIRouteType = 'organization-events';
 
-type APIRouterRendererArgs = {
-  organization: OrganizationSummary;
-  organizationUrl: string | undefined;
-  sentryUrl: string;
-  useOrganizationUrl: boolean;
-};
-type APIRouterRenderer = (args: APIRouterRendererArgs) => string;
+type LegacyRoute = string;
+type CustomerDomainRoute = string;
+type RouteTuple = [LegacyRoute, CustomerDomainRoute];
 
-const routeRenderMap: Record<APIRouteType, APIRouterRenderer> = {
-  'organization-events': function ({organizationUrl, organization, useOrganizationUrl}) {
-    if (!organizationUrl || !useOrganizationUrl) {
-      return `/organizations/${organization.slug}/events/`;
-    }
-    return `${generateOrganizationBaseUrl(organizationUrl)}/events/`;
-  },
+const routeRenderMap: Record<APIRouteType, RouteTuple> = {
+  'organization-events': ['/organizations/:slug/events/', '/events/'],
 };
 
 function canUseOrganizationUrl(organizationUrl: string | undefined) {
@@ -620,18 +611,27 @@ function canUseOrganizationUrl(organizationUrl: string | undefined) {
   );
 }
 
-export function resolveUrl(routeType: APIRouteType, organization: OrganizationSummary) {
-  const routeRender = routeRenderMap[routeType];
+export function resolveUrl(
+  routeType: APIRouteType,
+  organization: OrganizationSummary,
+  routeParams: {[key: string]: string | undefined} = {}
+) {
+  const [legacyRoute, customerDomainRoute] = routeRenderMap[routeType];
   const {organizationUrl} = organization;
-  const sentryUrl = ConfigStore.get('sentryUrl');
 
   const useOrganizationUrl = canUseOrganizationUrl(organizationUrl);
-  const result = routeRender({
-    organization,
-    organizationUrl,
-    useOrganizationUrl,
-    sentryUrl,
+  const shouldUseLegacyRoute = !organizationUrl || !useOrganizationUrl;
+
+  const route = shouldUseLegacyRoute ? legacyRoute : customerDomainRoute;
+
+  const renderedRoute = replaceRouterParams(route, {
+    slug: organization.slug,
+    ...routeParams,
   });
+
+  const result = shouldUseLegacyRoute
+    ? renderedRoute
+    : `${generateOrganizationBaseUrl(organizationUrl)}/${renderedRoute}`;
 
   const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   if (currentTransaction && currentTransaction.tags.hasOrganizationUrl !== String(true)) {
