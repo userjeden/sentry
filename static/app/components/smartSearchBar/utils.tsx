@@ -180,47 +180,36 @@ export function createSearchGroups(
     };
   }
 
+  const flatSearchItems = searchItems.flatMap(item => {
+    if (item.children) {
+      if (!item.value) {
+        return [...item.children];
+      }
+      return [item, ...item.children];
+    }
+    return [item];
+  });
+
   if (isDefaultState) {
     // Recent searches first in default state.
     return {
       searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
-      flatSearchItems: [...(recentSearchItems ? recentSearchItems : []), ...searchItems],
+      flatSearchItems: [
+        ...(recentSearchItems ? recentSearchItems : []),
+        ...flatSearchItems,
+      ],
       activeSearchItem: -1,
     };
   }
 
   return {
     searchGroups: [searchGroup, ...(recentSearchGroup ? [recentSearchGroup] : [])],
-    flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
+    flatSearchItems: [
+      ...flatSearchItems,
+      ...(recentSearchItems ? recentSearchItems : []),
+    ],
     activeSearchItem: -1,
   };
-}
-
-/**
- * Items is a list of dropdown groups that have a `children` field. Only the
- * `children` are selectable, so we need to find which child is selected given
- * an index that is in range of the sum of all `children` lengths
- *
- * @return Returns a tuple of [groupIndex, childrenIndex]
- */
-export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
-  let _index = index;
-  let foundSearchItem: [number?, number?] = [undefined, undefined];
-
-  items.find(({children}, i) => {
-    if (!children || !children.length) {
-      return false;
-    }
-    if (_index < children.length) {
-      foundSearchItem = [i, _index];
-      return true;
-    }
-
-    _index -= children.length;
-    return false;
-  });
-
-  return foundSearchItem;
 }
 
 export function generateOperatorEntryMap(tag: string) {
@@ -405,4 +394,34 @@ export const getTagItemsFromKeys = (
 
       return [...groups, item];
     }, [] as SearchItem[]);
+};
+
+export const setSearchGroupItemActive = (
+  searchGroups: SearchGroup[],
+  currentItem: SearchItem,
+  active: boolean
+) => {
+  searchGroups.find(group => {
+    return group.children?.find(item => {
+      if (item.value === currentItem.value) {
+        item.active = active;
+
+        return true;
+      }
+
+      if (item.children && item.children.length > 0) {
+        return item.children.find(child => {
+          if (child.value === currentItem.value) {
+            child.active = active;
+
+            return true;
+          }
+
+          return false;
+        });
+      }
+
+      return false;
+    });
+  });
 };

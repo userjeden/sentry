@@ -50,11 +50,11 @@ import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types
 import {
   addSpace,
   createSearchGroups,
-  filterSearchGroupsByIndex,
   generateOperatorEntryMap,
   getTagItemsFromKeys,
   getValidOps,
   removeSpace,
+  setSearchGroupItemActive,
   shortcuts,
 } from './utils';
 
@@ -680,52 +680,24 @@ class SmartSearchBar extends Component<Props, State> {
       const {flatSearchItems, activeSearchItem} = this.state;
       const searchGroups = [...this.state.searchGroups];
 
-      const [groupIndex, childrenIndex] = isSelectingDropdownItems
-        ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-        : [];
-
-      // Remove the previous 'active' property
-      if (typeof groupIndex !== 'undefined') {
-        if (
-          childrenIndex !== undefined &&
-          searchGroups[groupIndex]?.children?.[childrenIndex]
-        ) {
-          delete searchGroups[groupIndex].children[childrenIndex].active;
-        }
-      }
-
       const currIndex = isSelectingDropdownItems ? activeSearchItem : 0;
       const totalItems = flatSearchItems.length;
 
       // Move the selected index up/down
-      let nextActiveSearchItem = currIndex;
-      do {
-        nextActiveSearchItem =
-          key === 'ArrowUp'
-            ? (nextActiveSearchItem - 1 + totalItems) % totalItems
-            : isSelectingDropdownItems
-            ? (nextActiveSearchItem + 1) % totalItems
-            : 0;
-        // We want to skip any items without a value and not select them.
-      } while (flatSearchItems[nextActiveSearchItem].value === null);
+      const nextActiveSearchItem =
+        key === 'ArrowUp'
+          ? (currIndex - 1 + totalItems) % totalItems
+          : isSelectingDropdownItems
+          ? (currIndex + 1) % totalItems
+          : 0;
 
-      const [nextGroupIndex, nextChildrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        nextActiveSearchItem
-      );
+      // Clear previous selection
+      const prevItem = flatSearchItems[currIndex];
+      setSearchGroupItemActive(searchGroups, prevItem, false);
 
-      // Make sure search items exist (e.g. both groups could be empty) and
-      // attach the 'active' property to the item
-      if (
-        nextGroupIndex !== undefined &&
-        nextChildrenIndex !== undefined &&
-        searchGroups[nextGroupIndex]?.children
-      ) {
-        searchGroups[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchGroups[nextGroupIndex].children[nextChildrenIndex],
-          active: true,
-        };
-      }
+      // Set new selection
+      const activeItem = flatSearchItems[nextActiveSearchItem];
+      setSearchGroupItemActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
@@ -737,15 +709,9 @@ class SmartSearchBar extends Component<Props, State> {
     ) {
       evt.preventDefault();
 
-      const {activeSearchItem, searchGroups} = this.state;
-      const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        activeSearchItem
-      );
-      const item =
-        groupIndex !== undefined &&
-        childrenIndex !== undefined &&
-        searchGroups[groupIndex].children[childrenIndex];
+      const {activeSearchItem, flatSearchItems} = this.state;
+
+      const item = flatSearchItems[activeSearchItem];
 
       if (item) {
         if (item.callback) {
@@ -804,20 +770,17 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     evt.preventDefault();
-    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
     if (!this.state.showDropdown) {
       this.blur();
       return;
     }
 
-    const {searchGroups, activeSearchItem} = this.state;
-    const [groupIndex, childrenIndex] = isSelectingDropdownItems
-      ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-      : [];
+    const {searchGroups, flatSearchItems, activeSearchItem} = this.state;
+    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
-    if (groupIndex !== undefined && childrenIndex !== undefined) {
-      delete searchGroups[groupIndex].children[childrenIndex].active;
+    if (isSelectingDropdownItems) {
+      setSearchGroupItemActive(searchGroups, flatSearchItems[activeSearchItem], false);
     }
 
     this.setState({
