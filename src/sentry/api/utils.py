@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember
@@ -111,3 +112,18 @@ def is_member_disabled_from_limit(request, organization):
         return False
     else:
         return member.flags["member-limit:restricted"]
+
+
+def generate_customer_url(org_slug: str, region: Optional[str] = None) -> str:
+    url_prefix = options.get("system.url-prefix")
+    customer_base_hostname = options.get("system.customer-base-hostname")
+    if not customer_base_hostname:
+        return url_prefix
+    if "{slug}" not in customer_base_hostname:
+        return url_prefix
+    customer_url = customer_base_hostname.replace("{slug}", org_slug)
+    if "{region}" in customer_base_hostname:
+        if region is None:
+            return url_prefix
+        customer_url = customer_url.replace("{region}", region)
+    return customer_url
