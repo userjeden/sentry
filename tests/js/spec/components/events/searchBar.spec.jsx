@@ -104,9 +104,10 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
-    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper').first().text()).toEqual(
-      'release.build'
+    expect(wrapper.find('SearchDropdown FirstWordWrapper').first().text()).toEqual(
+      'release'
     );
+    expect(wrapper.find('SearchDropdown RestOfWords').first().text()).toEqual('.build');
   });
 
   it('autocomplete has suggestions correctly', async function () {
@@ -118,9 +119,7 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper').contains('gpu')).toBe(
-      true
-    );
+    expect(wrapper.find('SearchDropdown Value').contains('gpu')).toBe(true);
 
     const itemIndex = wrapper
       .find('SearchListItem[data-test-id="search-autocomplete-item"]')
@@ -152,9 +151,7 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper').at(2).text()).toEqual(
-      '"Nvidia 1080ti"'
-    );
+    expect(wrapper.find('SearchDropdown Value').at(2).text()).toEqual('"Nvidia 1080ti"');
 
     selectNthAutocompleteItem(wrapper, 2);
     wrapper.update();
@@ -183,9 +180,7 @@ describe('Events > SearchBar', function () {
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper').at(2).text()).toEqual(
-      '"Nvidia 1080ti"'
-    );
+    expect(wrapper.find('SearchDropdown Value').contains('"Nvidia 1080ti"')).toBe(true);
     selectNthAutocompleteItem(wrapper, 2);
 
     wrapper.find('textarea').simulate('keydown', {key: 'Enter'});
