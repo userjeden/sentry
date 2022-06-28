@@ -119,8 +119,8 @@ export interface Config {
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
-
   isAuthenticated: boolean;
+
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
@@ -132,12 +132,14 @@ export interface Config {
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
 
+  organizationUrl: string | undefined;
   privacyUrl: string | null;
   sentryConfig: {
     dsn: string;
     release: string;
     whitelistUrls: string[];
   };
+  sentryUrl: string;
   singleOrganization: boolean;
   supportEmail: string;
   termsUrl: string | null;
