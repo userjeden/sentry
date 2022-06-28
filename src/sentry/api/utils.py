@@ -117,14 +117,15 @@ def is_member_disabled_from_limit(request, organization):
 def generate_customer_url(org_slug: str) -> str:
     url_prefix = options.get("system.url-prefix")
     region = options.get("system.region") or None
-    customer_base_hostname = options.get("system.customer-base-hostname")
-    if not customer_base_hostname:
+    customer_base_hostname_template = options.get("system.customer-base-hostname")
+    customer_url_template = options.get("system.customer-url-template")
+    if not customer_base_hostname_template:
         return url_prefix
-    if "{slug}" not in customer_base_hostname:
+    if "{slug}" not in customer_base_hostname_template:
         return url_prefix
-    customer_url = customer_base_hostname.replace("{slug}", org_slug)
-    if "{region}" in customer_base_hostname:
+    customer_hostname = customer_base_hostname_template.replace("{slug}", org_slug)
+    if "{region}" in customer_base_hostname_template:
         if region is None:
             return url_prefix
-        customer_url = customer_url.replace("{region}", region)
-    return customer_url
+        customer_hostname = customer_hostname.replace("{region}", region)
+    return customer_url_template.replace("{hostname}", customer_hostname)
