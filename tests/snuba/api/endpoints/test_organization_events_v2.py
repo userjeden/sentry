@@ -10988,7 +10988,7 @@ class CustomerOrganizationEventsEndpointTest(OrganizationEventsEndpointTest):
 
     def client_get(self, *args, **kwargs):
         if "HTTP_HOST" not in kwargs:
-            kwargs["HTTP_HOST"] = generate_customer_url(self.organization.slug, region="us")
+            kwargs["HTTP_HOST"] = generate_customer_url(self.organization.slug)
         return self.client.get(
             *args,
             **kwargs,

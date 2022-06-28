@@ -114,8 +114,9 @@ def is_member_disabled_from_limit(request, organization):
         return member.flags["member-limit:restricted"]
 
 
-def generate_customer_url(org_slug: str, region: Optional[str] = None) -> str:
+def generate_customer_url(org_slug: str) -> str:
     url_prefix = options.get("system.url-prefix")
+    region = options.get("system.region") or None
     customer_base_hostname = options.get("system.customer-base-hostname")
     if not customer_base_hostname:
         return url_prefix

@@ -137,4 +137,4 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] == self.organization.slug
         assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] == f"{self.organization.slug}.testserver"
+        assert data["organizationUrl"] == f"{self.organization.slug}.us.testserver"
