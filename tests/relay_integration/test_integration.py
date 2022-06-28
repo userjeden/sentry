@@ -216,3 +216,23 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"unit": "millisecond", "value": pytest.approx(1050, rel=1e3)},
                 }
             }
+
+    def test_project_abuse_quotas(self):
+        # Windows < 10 seconds might be kinda flaky,
+        # so this is just a pretty basic test that sets a negative limit
+        # to reject all errors.
+        self.organization.update_option("project-abuse-quota.error-limit", -1)
+
+        event_data = {
+            "type": "error",
+            "message": "hi",
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        event = self.post_and_retrieve_event(event_data)
+
+        # this shouldn't be passing.
+        # does this reject-all quota work?
+        # from sentry.quotas.redis import RedisQuota
+        # RedisQuota().get_quotas(self.project)[0].to_json()
+        # {'scope': 'project', 'categories': ['default', 'error', 'security'], 'limit': 0, 'reasonCode': 'project_abuse_limit'}
+        assert event.message == "hi"

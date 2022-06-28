@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import options
+from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -202,8 +203,9 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_organization_quota",
+        "get_project_abuse_quotas",
         "get_project_quota",
+        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -321,6 +323,84 @@ class Quota(Service):
 
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
+
+    def get_project_abuse_quotas(self, org):
+        # Per-project abuse quotas for errors, transactions, attachments, sessions.
+        global_abuse_window = options.get("project-abuse-quota.window")
+
+        for option, compat_options, id, categories in (
+            (
+                "project-abuse-quota.error-limit",
+                (
+                    "sentry:project-error-limit",
+                    "getsentry.rate-limit.project-errors",
+                ),
+                "pae",
+                DataCategory.error_categories(),
+            ),
+            (
+                "project-abuse-quota.transaction-limit",
+                (
+                    "sentry:project-transaction-limit",
+                    "getsentry.rate-limit.project-transactions",
+                ),
+                "pat",
+                (DataCategory.TRANSACTION,),
+            ),
+            (
+                "project-abuse-quota.attachment-limit",
+                (),
+                "paa",
+                (DataCategory.ATTACHMENT,),
+            ),
+            (
+                "project-abuse-quota.session-limit",
+                (),
+                "pas",
+                (DataCategory.SESSION,),
+            ),
+        ):
+            limit = 0
+            abuse_window = global_abuse_window
+            # compat_options were previously present in getsentry
+            # for errors and transactions. The first one is the org
+            # option for overriding the global option, the second one.
+            # For now, these deprecated ones take precedence over the new
+            # to preserve existing behavior.
+            if compat_options:
+                limit = org.get_option(compat_options[0])
+                if not limit:
+                    limit = options.get(compat_options[1])
+
+            if not limit:
+                limit = org.get_option(option)
+                if not limit:
+                    limit = options.get(option)
+
+            if limit == 0:
+                # Unlimited.
+                continue
+
+            # Negative limits mean a reject-all quota, which
+            # cannot have an id.
+            if limit < 0:
+                limit = 0
+                id = None
+                abuse_window = None
+            else:
+                limit *= abuse_window
+
+            yield QuotaConfig(
+                id=id,
+                limit=limit,
+                scope=QuotaScope.PROJECT,
+                categories=categories,
+                window=abuse_window,
+                # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                #      from getsentry. Don't change it here.
+                #      If it's changed in getsentry, it needs to be synced here.
+                reason_code="project_abuse_limit",
+            )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
