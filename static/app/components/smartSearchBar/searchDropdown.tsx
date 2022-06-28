@@ -388,7 +388,7 @@ const SearchItemTitleWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
   flex-shrink: 0;
-  max-width: 280px;
+  max-width: min(280px, 50%);
 
   color: ${p => p.theme.textColor};
   font-weight: normal;
