@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -16,8 +17,10 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {Tag} from 'sentry/types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -122,9 +125,31 @@ export function createSearchGroups(
   }
 
   if (queryCharsLeft || queryCharsLeft === 0) {
+    searchItems = searchItems.flatMap(item => {
+      if (!item.children) {
+        if (!item.value || item.value.length <= queryCharsLeft) {
+          return [item];
+        }
+        return [];
+      }
+
+      const newItem = {
+        ...item,
+        children: item.children.filter(
+          child => !child.value || child.value.length <= queryCharsLeft
+        ),
+      };
+
+      if (newItem.children.length === 0) {
+        return [];
+      }
+
+      return [newItem];
+    });
     searchItems = searchItems.filter(
       (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
     );
+
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
         (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
@@ -317,3 +342,67 @@ export const shortcuts: Shortcut[] = [
     },
   },
 ];
+
+export const getTagItemsFromKeys = (
+  tagKeys: string[],
+  supportedTags: {
+    [key: string]: Tag;
+  },
+  getFieldDoc?: (key: string) => React.ReactNode
+) => {
+  return [...tagKeys]
+    .sort((a, b) => a.localeCompare(b))
+    .reduce((groups, key) => {
+      const keyWithColon = `${key}:`;
+      const sections = key.split('.');
+      const kind = supportedTags[key]?.kind;
+      const documentation = getFieldDoc?.(key) || '-';
+
+      const item: SearchItem = {
+        value: keyWithColon,
+        title: key,
+        documentation,
+        kind,
+      };
+
+      const lastGroup = groups.at(-1);
+
+      const [title] = sections;
+
+      if (kind !== FieldValueKind.FUNCTION && lastGroup) {
+        if (lastGroup.children && lastGroup.title === title) {
+          lastGroup.children.push(item);
+          return groups;
+        }
+
+        if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
+          if (lastGroup.title === title) {
+            return [
+              ...groups.slice(0, -1),
+              {
+                title,
+                value: lastGroup.value,
+                documentation: lastGroup.documentation,
+                kind: lastGroup.kind,
+                children: [item],
+              },
+            ];
+          }
+
+          // Add a blank parent if the last group's full key is not the same as the title
+          return [
+            ...groups.slice(0, -1),
+            {
+              title,
+              value: null,
+              documentation: '-',
+              kind: lastGroup.kind,
+              children: [lastGroup, item],
+            },
+          ];
+        }
+      }
+
+      return [...groups, item];
+    }, [] as SearchItem[]);
+};

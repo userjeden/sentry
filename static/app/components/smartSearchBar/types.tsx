@@ -28,12 +28,13 @@ export type SearchItem = {
    * Call a callback instead of setting a value in the search query
    */
   callback?: () => void;
-  children?: React.ReactNode[];
+  /**
+   * Child search items, we only support 1 level of nesting though.
+   */
+  children?: SearchItem[];
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
-  isChild?: boolean;
-  isGrouped?: boolean;
   kind?: FieldValueKind;
   title?: string;
   type?: ItemType;

@@ -32,7 +32,7 @@ class SearchDropdown extends PureComponent<Props> {
     onClick: function () {},
   };
 
-  renderItemTitle = (item: SearchItem) => {
+  renderItemTitle = (item: SearchItem, isChild?: boolean) => {
     if (!item.title) {
       return null;
     }
@@ -42,7 +42,7 @@ class SearchDropdown extends PureComponent<Props> {
     const words =
       item.kind !== FieldValueKind.FUNCTION ? fullWord.split('.') : [fullWord];
     const [firstWord, ...restWords] = words;
-    const isFirstWordHidden = item.isGrouped && item.isChild;
+    const isFirstWordHidden = isChild;
 
     const combinedRestWords = restWords.length > 0 ? restWords.join('.') : null;
 
@@ -54,11 +54,16 @@ class SearchDropdown extends PureComponent<Props> {
           ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
           : fullWord.toLowerCase().indexOf(searchSubstring);
 
+      // Below is the logic to make the current query bold inside the result.
       if (idx !== -1) {
         let renderedRest: React.ReactNode;
         if (combinedRestWords) {
-          const remainingSubstr = searchSubstring.slice(firstWord.length + 1);
+          const remainingSubstr =
+            searchSubstring.indexOf(firstWord) === -1
+              ? searchSubstring
+              : searchSubstring.slice(firstWord.length + 1);
           const descIdx = combinedRestWords.indexOf(remainingSubstr);
+
           if (descIdx > -1) {
             renderedRest = (
               <RestOfWords
@@ -67,13 +72,20 @@ class SearchDropdown extends PureComponent<Props> {
               >
                 .{combinedRestWords.slice(0, descIdx)}
                 <strong>
-                  {combinedRestWords.slice(descIdx, remainingSubstr.length)}
+                  {combinedRestWords.slice(descIdx, descIdx + remainingSubstr.length)}
                 </strong>
                 {combinedRestWords.slice(descIdx + remainingSubstr.length)}
               </RestOfWords>
             );
           } else {
-            renderedRest = combinedRestWords;
+            renderedRest = (
+              <RestOfWords
+                isFirstWordHidden={isFirstWordHidden}
+                hasSplit={words.length > 1}
+              >
+                .{combinedRestWords}
+              </RestOfWords>
+            );
           }
         }
 
@@ -82,7 +94,7 @@ class SearchDropdown extends PureComponent<Props> {
             {!isFirstWordHidden && (
               <FirstWordWrapper>
                 {firstWord.slice(0, idx)}
-                <strong>{firstWord.slice(idx, searchSubstring.length)}</strong>
+                <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
                 {firstWord.slice(idx + searchSubstring.length)}
               </FirstWordWrapper>
             )}
@@ -132,7 +144,7 @@ class SearchDropdown extends PureComponent<Props> {
     );
   };
 
-  renderItem = (item: SearchItem) => {
+  renderItem = (item: SearchItem, isChild?: boolean) => {
     const isDisabled = item.value === null;
 
     let children: React.ReactNode;
@@ -152,32 +164,32 @@ class SearchDropdown extends PureComponent<Props> {
     } else {
       children = (
         <Fragment>
-          {this.renderItemTitle(item)}
+          {this.renderItemTitle(item, isChild)}
           {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
           <Documentation>{item.documentation}</Documentation>
-          <TagWrapper>
-            {item.kind && !item.isChild && this.renderKind(item.kind)}
-          </TagWrapper>
+          <TagWrapper>{item.kind && !isChild && this.renderKind(item.kind)}</TagWrapper>
         </Fragment>
       );
     }
 
     return (
-      <SearchListItem
-        key={item.value || item.desc || item.title}
-        className={`${item.isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
-        data-test-id="search-autocomplete-item"
-        onClick={
-          !isDisabled
-            ? item.callback ?? this.props.onClick.bind(this, item.value, item)
-            : undefined
-        }
-        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-        isGrouped={item.isGrouped}
-        isDisabled={isDisabled}
-      >
-        {children}
-      </SearchListItem>
+      <Fragment key={item.value || item.desc || item.title}>
+        <SearchListItem
+          className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
+          data-test-id="search-autocomplete-item"
+          onClick={
+            !isDisabled
+              ? item.callback ?? this.props.onClick.bind(this, item.value, item)
+              : undefined
+          }
+          ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+          isGrouped={isChild}
+          isDisabled={isDisabled}
+        >
+          {children}
+        </SearchListItem>
+        {!isChild && item.children?.map(child => this.renderItem(child, true))}
+      </Fragment>
     );
   };
 
@@ -229,7 +241,7 @@ class SearchDropdown extends PureComponent<Props> {
               return (
                 <Fragment key={item.title}>
                   {item.type === 'header' && this.renderHeaderItem(item)}
-                  {item.children && item.children.map(this.renderItem)}
+                  {item.children && item.children.map(child => this.renderItem(child))}
                   {isEmpty && <Info>{t('No items found')}</Info>}
                 </Fragment>
               );

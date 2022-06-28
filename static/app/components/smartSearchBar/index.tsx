@@ -42,7 +42,6 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
@@ -53,6 +52,7 @@ import {
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
+  getTagItemsFromKeys,
   getValidOps,
   removeSpace,
   shortcuts,
@@ -935,56 +935,9 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const groupsHandled = new Set<string>();
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
 
-    const tagGroups = tagKeys
-      .sort((a, b) => a.localeCompare(b))
-      .flatMap((key, _, arr) => {
-        const keyWithColon = `${key}:`;
-        const sections = key.split('.');
-        const kind = supportedTags[key]?.kind;
-        const documentation = getFieldDoc?.(key) || '-';
-
-        const item: SearchItem = {
-          value: keyWithColon,
-          title: key,
-          documentation,
-          kind,
-        };
-
-        const [title] = sections;
-        const groupMemberCount = arr.filter(k => k.startsWith(title)).length;
-
-        if (kind !== FieldValueKind.FUNCTION && groupMemberCount > 1) {
-          item.isGrouped = true;
-
-          if (sections.length > 1) {
-            item.isChild = true;
-
-            if (groupMemberCount > 1 && !groupsHandled.has(title)) {
-              // This will be the only group member, add a group header
-              groupsHandled.add(title);
-
-              return [
-                {
-                  value: null,
-                  title,
-                  documentation: '-',
-                  kind,
-                  isGrouped: true,
-                },
-                item,
-              ];
-            }
-          }
-
-          groupsHandled.add(title);
-        }
-
-        return [item];
-      });
-
-    return [tagGroups, supportedTagType ?? ItemType.TAG_KEY];
+    return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
 
   /**
