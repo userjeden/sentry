@@ -332,6 +332,11 @@ export const shortcuts: Shortcut[] = [
   },
 ];
 
+/**
+ * Groups tag keys based on the "." character in their key.
+ * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
+ * The parent will become interactive if there exists a key "device".
+ */
 export const getTagItemsFromKeys = (
   tagKeys: string[],
   supportedTags: {
@@ -396,6 +401,10 @@ export const getTagItemsFromKeys = (
     }, [] as SearchItem[]);
 };
 
+/**
+ * Sets an item as active within a search group array.
+ * Comparison using the value of the item, assuming each item has a unique value.
+ */
 export const setSearchGroupItemActive = (
   searchGroups: SearchGroup[],
   currentItem: SearchItem,
