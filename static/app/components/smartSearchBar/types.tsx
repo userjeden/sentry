@@ -38,6 +38,9 @@ export type SearchItem = {
   kind?: FieldValueKind;
   title?: string;
   type?: ItemType;
+  /**
+   * A value of null means that this item is not selectable in the search dropdown
+   */
   value?: string | null;
 };
 
