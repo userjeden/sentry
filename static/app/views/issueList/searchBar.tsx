@@ -122,7 +122,6 @@ class IssueListSearchBar extends Component<Props, State> {
       <SmartSearchBar
         searchSource="main_search"
         hasRecentSearches
-        maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}
         onGetTagValues={this.getTagValues}
         actionBarItems={[
@@ -130,6 +129,7 @@ class IssueListSearchBar extends Component<Props, State> {
           makeSaveSearchAction({sort}),
           makeSearchBuilderAction({onSidebarToggle}),
         ]}
+        maxMenuHeight={500}
         {...props}
         supportedTags={this.state.supportedTags}
         getFieldDoc={getFieldDoc}
