@@ -13,6 +13,7 @@ class WebhookApiClient(ApiClient):
     def request(self, url):
         return self._request(
             path=url,
+            headers="Authorization:32sVC4PKABIvijIU76y01cDb",
             method="post",
             data=self.data,
             json=True,
